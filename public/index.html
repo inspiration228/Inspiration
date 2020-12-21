@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Speech To Text</title>
+    <meta charset="utf-8" />
+</head>
+<body style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:13px;background: rgb(248, 242, 209);">
+    <div id="content" style="display:none">
+        <table>
+            <tr>
+                <td></td>
+                <td>
+                    <h1 style="font-weight:500;">Speech To Text</h1>
+                </td>
+            </tr>
+            <tr>
+                <td align="right">Language:</td>
+                <td align="left">
+                    <select id="languageOptions">
+                        <option value="en-AU">English - AU</option>
+                        <option value="en-CA">English - CA</option>
+                        <option value="en-GB">English - GB</option>
+                        <option value="en-IN">English - IN</option>
+                        <option value="en-NZ">English - NZ</option>
+                        <option value="en-US" selected="selected">English - US</option>
+                        <option value="fr-CA">French - CA</option>
+                        <option value="fr-FR">French - FR</option>
+                        <option value="hi-IN">Hindi - IN</option>
+                        <option value="ml-IN">Malayalam - IN</option>
+                        <option value="te-IN">Telugu - IN</option>
+                        <option value="kn-IN">Kannada - IN</option>
+                        <option value="ta-IN">Tamil - IN</option>
+                        <option value="mr-IN">Marathi - IN</option>
+                    </select>
+                </td>
+            </tr>
+            <tr>
+                <td align="right">Region:</td>
+                <td align="left">
+                    <select id="regionOptions">
+                        <!-- <option value="westus" selected="selected">West US</option>
+                        <option value="westus2">West US2</option> -->
+                        <option value="eastus">East US</option>
+                        <!-- <option value="eastus2">East US2</option>
+                        <option value="eastasia">East Asia</option>
+                        <option value="southeastasia">South East Asia</option>
+                        <option value="northeurope">North Europe</option>
+                        <option value="westeurope">West Europe</option> -->
+                    </select>
+                </td>
+            </tr>
+            <tr>
+                <td align="right">Input:</td>
+                <td align="left">
+                    <select id="inputSource">
+                        <option value="Mic" selected="selected">Microphone</option>
+                        <option value="File">Audio File</option>
+                    </select>
+                    <select id="microphoneSource" style="display:none">
+                    </select>
+                </td>
+            </tr>
+            <tr>
+                <td></td>
+                <td>
+                    <input type="file" id="filePicker" accept=".wav" style="display:none" />
+                </td>
+            </tr>
+            <tr>
+                <td align="right"><b>Single Phrase Speech To Text:</b></td>
+                <td>
+                    <button id="speechsdkStartRecognizeOnceAsync">START</button>
+                    <button id="speechsdkStopRecognizeOnceAsync" disabled="disabled">STOP</button>
+                </td>
+            </tr>
+            <tr>
+                <td align="right"><b>Continuous Speech To Text:</b></td>
+                <td>
+                    <button id="speechsdkStartContinuousRecognition">START</button>
+                    <button id="speechsdkStopContinuousRecognition" disabled="disabled">STOP</button>
+                </td>
+            </tr>
+            <tr>
+                <td align="right"><b>Speech Translation:</b></td>
+                <td>
+                    <button id="speechsdkStartContinuousTranslation">START</button>
+                    <button id="speechsdkStopContinuousTranslation" disabled="disabled">STOP</button>
+                        <select id="languageTargetOptions">
+                        <option value="Microsoft Server Speech Text to Speech Voice (en-AU, Catherine)">English - AU
+                        </option>
+                        <option value="Microsoft Server Speech Text to Speech Voice (en-CA, Linda)">English - CA
+                        </option>
+                        <option value="Microsoft Server Speech Text to Speech Voice (en-GB, Susan, Apollo)">English - GB
+                        </option>
+                        <option value="Microsoft Server Speech Text to Speech Voice (en-IN, Heera, Apollo)">English - IN
+                        </option>
+                        <option value="Microsoft Server Speech Text to Speech Voice (en-NZ, Heera, Apollo)">English - NZ
+                        </option>
+                        <option value="Microsoft Server Speech Text to Speech Voice (en-US, ZiraRUS)" selected="selected">English - US
+                        </option>
+                        <option value="Microsoft Server Speech Text to Speech Voice (fr-CA, Caroline)">French - CA
+                        </option>
+                        <option value="Microsoft Server Speech Text to Speech Voice (fr-FR, Julie, Apollo)">French - FR
+                        </option>
+                        <option value="Microsoft Server Speech Text to Speech Voice (hi-IN, Hemant)">Hindi - IN
+                        </option>                     
+                        <option value="Microsoft Server Speech Text to Speech Voice (ml-IN, ml-IN-Valluvar)">Malayalam - IN
+                        </option>
+                        <option value="Microsoft Server Speech Text to Speech Voice (te-IN, te-IN-Chitra)">Telugu - IN
+                        </option>
+                        <option value="Microsoft Server Speech Text to Speech Voice (kn-IN, kn-IN-Valluvar)">Kannada - IN
+                        </option>
+                        <option value="Microsoft Server Speech Text to Speech Voice (ta-IN, ta-IN-Valluvar)">Tamil - IN
+                        </option>
+                        <option value="Microsoft Server Speech Text to Speech Voice (mr-IN, mr-IN-Valluvar)">Marathi - IN
+                        </option>
+                    </select>
+                    <input id="voiceOutput" type="checkbox">
+                    <label for="voiceOutput">Voice Output</label>
+                </td>
+            </tr>
+            <tr>
+                <td align="right">Speech To Text Output:</td>
+                <td align="left">
+                    <textarea id="phraseDiv" style="display: inline-block;width:500px;height:200px"></textarea>
+                </td>
+            </tr>
+            <tr>
+                <td align="right">Console Logs:</td>
+                <td align="left"><textarea id="statusDiv"
+                        style="display: inline-block;width:500px;height:200px;overflow: scroll;white-space: nowrap;"></textarea>
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    <script src="microsoft.cognitiveservices.speech.sdk.bundle.js"></script>
+    <script>
+        var authorizationEndpoint = "https://eastus.api.cognitive.microsoft.com/sts/v1.0/issueToken";
+        function RequestAuthorizationToken() {
+            if (authorizationEndpoint) {
+                var a = new XMLHttpRequest();
+                a.open("POST", authorizationEndpoint);
+                a.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+                a.setRequestHeader("Ocp-Apim-Subscription-Key", "3e993604d9ec46f6996f011bc01824b6")
+                a.send("");
+                a.onload = function () {
+                    var token = JSON.parse(atob(this.responseText.split(".")[1]));
+                    regionOptions.value = token.region;
+                    authorizationToken = this.responseText;
+                    console.log("Got an authorization token: " + token);
+                }
+            }
+        }
+    </script>
+    <script>
+        function Initialize(onComplete) {
+            if (!!window.SpeechSDK) {
+                document.getElementById('content').style.display = 'block';
+                onComplete(window.SpeechSDK);
+            }
+        }
+    </script>
+    <script>
+        var phraseDiv, statusDiv;
+        var key, authorizationToken;
+        var regionOptions;
+        var languageOptions, inputSource, filePicker, microphoneSource;
+        var SpeechSDK;
+        var recognizer;
+
+        var reco;
+        var sdkStartContinousRecognitionBtn, sdkStopContinousRecognitionBtn;
+        var sdkStartContinousTranslationBtn, sdkStopContinousTranslationBtn;
+        var sdkStartRecognizeOnceAsyncBtn, sdkStopRecognizeOnceAsyncBtn, languageTargetOptions, voiceOutput;
+        var audioFile, audioFileValid;
+        var microphoneId;
+
+        var soundContext = undefined;
+        try {
+            var AudioContext = window.AudioContext
+                || window.webkitAudioContext
+                || false;
+
+            if (AudioContext) {
+                soundContext = new AudioContext();
+            } else {
+                alert("Audio context not supported");
+            }
+        }
+        catch (e) {
+            window.console.log("no sound context found, no audio output. " + e);
+        }
+
+        document.addEventListener("DOMContentLoaded", function () {
+            createBtn = document.getElementById("createBtn");
+            sdkStartRecognizeOnceAsyncBtn = document.getElementById("speechsdkStartRecognizeOnceAsync");
+            sdkStopRecognizeOnceAsyncBtn = document.getElementById("speechsdkStopRecognizeOnceAsync");
+            sdkStartContinousRecognitionBtn = document.getElementById("speechsdkStartContinuousRecognition");
+            sdkStopContinousRecognitionBtn = document.getElementById("speechsdkStopContinuousRecognition");
+            sdkStartContinousTranslationBtn = document.getElementById("speechsdkStartContinuousTranslation");
+            sdkStopContinousTranslationBtn = document.getElementById("speechsdkStopContinuousTranslation");
+            phraseDiv = document.getElementById("phraseDiv");
+            statusDiv = document.getElementById("statusDiv");
+            key = "3e993604d9ec46f6996f011bc01824b6";
+            languageOptions = document.getElementById("languageOptions");
+            languageTargetOptions = document.getElementById("languageTargetOptions");
+            voiceOutput = document.getElementById("voiceOutput");
+            regionOptions = document.getElementById("regionOptions");
+            inputSource = document.getElementById("inputSource");
+            filePicker = document.getElementById('filePicker');
+            microphoneSource = document.getElementById("microphoneSource");
+
+            sdkStartContinousRecognitionBtn.addEventListener("click", function () {
+                phraseDiv.innerHTML = "";
+                statusDiv.innerHTML = "";
+                var lastRecognized = "";
+                var audioConfig;
+                if (audioFileValid) {
+                    audioConfig = SpeechSDK.AudioConfig.fromWavFileInput(audioFile);
+                } else if (undefined != microphoneSource.value) {
+                    console.info("Getting Microphone " + microphoneSource.value);
+                    audioConfig = SpeechSDK.AudioConfig.fromMicrophoneInput(microphoneSource.value);
+                } else {
+                    audioConfig = SpeechSDK.AudioConfig.fromDefaultMicrophoneInput();
+                }
+
+                var speechConfig;
+                if (authorizationToken) {
+                    speechConfig = SpeechSDK.SpeechConfig.fromAuthorizationToken(authorizationToken, regionOptions.value);
+                } else {
+                    speechConfig = SpeechSDK.SpeechConfig.fromSubscription(key, regionOptions.value);
+                }
+
+                speechConfig.speechRecognitionLanguage = languageOptions.value;
+                reco = new SpeechSDK.SpeechRecognizer(speechConfig, audioConfig);
+
+                reco.recognizing = function (s, e) {
+                    window.console.log(e);
+                    statusDiv.innerHTML += "(recognizing) Reason: " + SpeechSDK.ResultReason[e.result.reason] + " Text: " + e.result.text + "\r\n";
+                    phraseDiv.innerHTML = lastRecognized + e.result.text;
+                };
+                reco.recognized = function (s, e) {
+                    window.console.log(e);
+                    if (e.result.reason === SpeechSDK.ResultReason.NoMatch) {
+                        var noMatchDetail = SpeechSDK.NoMatchDetails.fromResult(e.result);
+                        statusDiv.innerHTML += "(recognized)  Reason: " + SpeechSDK.ResultReason[e.result.reason] + " NoMatchReason: " + SpeechSDK.NoMatchReason[noMatchDetail.reason] + "\r\n";
+                    } else {
+                        statusDiv.innerHTML += "(recognized)  Reason: " + SpeechSDK.ResultReason[e.result.reason] + " Text: " + e.result.text + "\r\n";
+                    }
+                    lastRecognized += e.result.text + "\r\n";
+                    phraseDiv.innerHTML = lastRecognized;
+                };
+                reco.canceled = function (s, e) {
+                    window.console.log(e);
+                    statusDiv.innerHTML += "(cancel) Reason: " + SpeechSDK.CancellationReason[e.reason];
+                    if (e.reason === SpeechSDK.CancellationReason.Error) {
+                        statusDiv.innerHTML += ": " + e.errorDetails;
+                    }
+                    statusDiv.innerHTML += "\r\n";
+                };
+                reco.sessionStarted = function (s, e) {
+                    window.console.log(e);
+                    statusDiv.innerHTML += "(sessionStarted) SessionId: " + e.sessionId + "\r\n";
+                };
+                reco.sessionStopped = function (s, e) {
+                    window.console.log(e);
+                    statusDiv.innerHTML += "(sessionStopped) SessionId: " + e.sessionId + "\r\n";
+                    sdkStartContinousRecognitionBtn.disabled = false;
+                    sdkStopContinousRecognitionBtn.disabled = true;
+                };
+                reco.speechStartDetected = function (s, e) {
+                    window.console.log(e);
+                    statusDiv.innerHTML += "(speechStartDetected) SessionId: " + e.sessionId + "\r\n";
+                };
+                reco.speechEndDetected = function (s, e) {
+                    window.console.log(e);
+                    statusDiv.innerHTML += "(speechEndDetected) SessionId: " + e.sessionId + "\r\n";
+                };
+                reco.startContinuousRecognitionAsync();
+                sdkStartContinousRecognitionBtn.disabled = true;
+                sdkStopContinousRecognitionBtn.disabled = false;
+            });
+
+            sdkStopContinousRecognitionBtn.addEventListener("click", function () {
+                reco.stopContinuousRecognitionAsync(
+                    function () {
+                        reco.close();
+                        reco = undefined;
+                    },
+                    function (err) {
+                        reco.close();
+                        reco = undefined;
+                    });
+
+                sdkStartContinousRecognitionBtn.disabled = false;
+                sdkStopContinousRecognitionBtn.disabled = true;
+            });
+
+
+            sdkStartContinousTranslationBtn.addEventListener("click", function () {
+                var lastRecognized = "";
+                phraseDiv.innerHTML = "";
+                statusDiv.innerHTML = "";
+
+                var audioConfig;
+                if (audioFileValid) {
+                    audioConfig = SpeechSDK.AudioConfig.fromWavFileInput(audioFile);
+                } else if (undefined != microphoneSource.value) {
+                    console.info("Getting Microphone " + microphoneSource.value);
+                    audioConfig = SpeechSDK.AudioConfig.fromMicrophoneInput(microphoneSource.value);
+                } else {
+                    audioConfig = SpeechSDK.AudioConfig.fromDefaultMicrophoneInput();
+                }
+                var speechConfig;
+                if (authorizationToken) {
+                    speechConfig = SpeechSDK.SpeechTranslationConfig.fromAuthorizationToken(authorizationToken, regionOptions.value);
+                } else {
+                    speechConfig = SpeechSDK.SpeechTranslationConfig.fromSubscription(key, regionOptions.value);
+                }
+                speechConfig.speechRecognitionLanguage = languageOptions.value;
+                speechConfig.addTargetLanguage(languageTargetOptions.value.split("(")[1].substring(0, 5));
+                if (voiceOutput.checked) {
+                    speechConfig.setProperty(SpeechSDK.PropertyId.SpeechServiceConnection_TranslationVoice, languageTargetOptions.value);
+                }
+                reco = new SpeechSDK.TranslationRecognizer(speechConfig, audioConfig);
+                reco.recognizing = function (s, e) {
+                    window.console.log(e);
+                    statusDiv.innerHTML += "(recognizing) Reason: " + SpeechSDK.ResultReason[e.result.reason] + " Text: " + e.result.text + " Translations:";
+                    var language = languageTargetOptions.value.split("(")[1].substring(0, 2);
+                    statusDiv.innerHTML += " [" + language + "] " + e.result.translations.get(language);
+                    statusDiv.innerHTML += "\r\n";
+                    phraseDiv.innerHTML = lastRecognized + e.result.translations.get(language);
+                };
+                reco.recognized = function (s, e) {
+                    window.console.log(e);
+                    statusDiv.innerHTML += "(recognized)  Reason: " + SpeechSDK.ResultReason[e.result.reason] + " Text: " + e.result.text + " Translations:";
+                    var language = languageTargetOptions.value.split("(")[1].substring(0, 2);
+                    statusDiv.innerHTML += " [" + language + "] " + e.result.translations.get(language);
+                    statusDiv.innerHTML += "\r\n";
+                    lastRecognized += e.result.translations.get(language) + "\r\n";
+                    phraseDiv.innerHTML = lastRecognized;
+                };
+                reco.canceled = function (s, e) {
+                    window.console.log(e);
+                    statusDiv.innerHTML += "(cancel) Reason: " + SpeechSDK.CancellationReason[e.reason] + "\r\n";
+                };
+                reco.synthesizing = function (s, e) {
+                    window.console.log(e);
+                    var audioSize = e.result.audio === undefined ? 0 : e.result.audio.byteLength;
+                    statusDiv.innerHTML += "(synthesizing) Reason: " + SpeechSDK.ResultReason[e.result.reason] + " " + audioSize + " bytes\r\n";
+                    if (e.result.audio && soundContext) {
+                        var source = soundContext.createBufferSource();
+                        soundContext.decodeAudioData(e.result.audio, function (newBuffer) {
+                            source.buffer = newBuffer;
+                            source.connect(soundContext.destination);
+                            source.start(0);
+                        });
+                    }
+                };
+                reco.sessionStarted = function (s, e) {
+                    window.console.log(e);
+                    statusDiv.innerHTML += "(sessionStarted) SessionId: " + e.sessionId + "\r\n";
+                };
+                reco.sessionStopped = function (s, e) {
+                    languageTargetOptions.disabled = false;
+                    sdkStartContinousTranslationBtn.disabled = false;
+                    sdkStopContinousTranslationBtn.disabled = true;
+                    window.console.log(e);
+                    statusDiv.innerHTML += "(sessionStopped) SessionId: " + e.sessionId + "\r\n";
+                    sdkStartContinousRecognitionBtn.disabled = false;
+                    sdkStopContinousRecognitionBtn.disabled = true;
+                };
+                reco.speechStartDetected = function (s, e) {
+                    window.console.log(e);
+                    statusDiv.innerHTML += "(speechStartDetected) SessionId: " + e.sessionId + "\r\n";
+                };
+                reco.speechEndDetected = function (s, e) {
+                    window.console.log(e);
+                    statusDiv.innerHTML += "(speechEndDetected) SessionId: " + e.sessionId + "\r\n";
+                };
+                reco.startContinuousRecognitionAsync();
+                languageTargetOptions.disabled = true;
+                sdkStartContinousTranslationBtn.disabled = true;
+                sdkStopContinousTranslationBtn.disabled = false;
+            });
+
+            sdkStopContinousTranslationBtn.addEventListener("click", function () {
+                languageTargetOptions.disabled = false;
+                sdkStartContinousTranslationBtn.disabled = false;
+                sdkStopContinousTranslationBtn.disabled = true;
+                reco.stopContinuousRecognitionAsync(
+                    function () {
+                        reco.close();
+                        reco = undefined;
+                    },
+                    function (err) {
+                        reco.close();
+                        reco = undefined;
+                    });
+            });
+
+
+            sdkStartRecognizeOnceAsyncBtn.addEventListener("click", function () {
+                phraseDiv.innerHTML = "";
+                statusDiv.innerHTML = "";
+                var audioConfig;
+                if (audioFileValid) {
+                    audioConfig = SpeechSDK.AudioConfig.fromWavFileInput(audioFile);
+                } else if (undefined != microphoneSource.value) {
+                    console.info("Getting Microphone " + microphoneSource.value);
+                    audioConfig = SpeechSDK.AudioConfig.fromMicrophoneInput(microphoneSource.value);
+                } else {
+                    audioConfig = SpeechSDK.AudioConfig.fromDefaultMicrophoneInput();
+                }
+                var speechConfig;
+                if (authorizationToken) {
+                    speechConfig = SpeechSDK.SpeechConfig.fromAuthorizationToken(authorizationToken, regionOptions.value);
+                } else {
+                    speechConfig = SpeechSDK.SpeechConfig.fromSubscription(key, regionOptions.value);
+                }
+                speechConfig.speechRecognitionLanguage = languageOptions.value;
+                reco = new SpeechSDK.SpeechRecognizer(speechConfig, audioConfig);
+                reco.recognizing = function (s, e) {
+                    window.console.log(e);
+                    statusDiv.innerHTML += "(recognizing) Reason: " + SpeechSDK.ResultReason[e.result.reason] + " Text: " + e.result.text + "\r\n";
+                    phraseDiv.innerHTML = e.result.text;
+                };
+                reco.canceled = function (s, e) {
+                    window.console.log(e);
+                    statusDiv.innerHTML += "(cancel) Reason: " + SpeechSDK.CancellationReason[e.reason];
+                    if (e.reason === SpeechSDK.CancellationReason.Error) {
+                        statusDiv.innerHTML += ": " + e.errorDetails;
+                    }
+                    statusDiv.innerHTML += "\r\n";
+                };
+                reco.recognized = function (s, e) {
+                    window.console.log(e);
+                    if (e.result.reason === SpeechSDK.ResultReason.NoMatch) {
+                        var noMatchDetail = SpeechSDK.NoMatchDetails.fromResult(e.result);
+                        statusDiv.innerHTML += "(recognized)  Reason: " + SpeechSDK.ResultReason[e.result.reason] + " NoMatchReason: " + SpeechSDK.NoMatchReason[noMatchDetail.reason] + "\r\n";
+                    } else {
+                        statusDiv.innerHTML += "(recognized)  Reason: " + SpeechSDK.ResultReason[e.result.reason] + " Text: " + e.result.text + "\r\n";
+                    }
+                };
+                reco.sessionStarted = function (s, e) {
+                    window.console.log(e);
+                    statusDiv.innerHTML += "(sessionStarted) SessionId: " + e.sessionId + "\r\n";
+                };
+                reco.sessionStopped = function (s, e) {
+                    window.console.log(e);
+                    statusDiv.innerHTML += "(sessionStopped) SessionId: " + e.sessionId + "\r\n";
+                    sdkStartContinousRecognitionBtn.disabled = false;
+                    sdkStopContinousRecognitionBtn.disabled = true;
+                };
+                reco.speechStartDetected = function (s, e) {
+                    window.console.log(e);
+                    statusDiv.innerHTML += "(speechStartDetected) SessionId: " + e.sessionId + "\r\n";
+                };
+                reco.speechEndDetected = function (s, e) {
+                    window.console.log(e);
+                    statusDiv.innerHTML += "(speechEndDetected) SessionId: " + e.sessionId + "\r\n";
+                };
+                reco.recognizeOnceAsync(
+                    function (result) {
+                        window.console.log(result);
+                        statusDiv.innerHTML += "(continuation) Reason: " + SpeechSDK.ResultReason[result.reason];
+                        switch (result.reason) {
+                            case SpeechSDK.ResultReason.RecognizedSpeech:
+                                statusDiv.innerHTML += " Text: " + result.text;
+                                break;
+                            case SpeechSDK.ResultReason.NoMatch:
+                                var noMatchDetail = SpeechSDK.NoMatchDetails.fromResult(result);
+                                statusDiv.innerHTML += " NoMatchReason: " + SpeechSDK.NoMatchReason[noMatchDetail.reason];
+                                break;
+                            case SpeechSDK.ResultReason.Canceled:
+                                var cancelDetails = SpeechSDK.CancellationDetails.fromResult(result);
+                                statusDiv.innerHTML += " CancellationReason: " + SpeechSDK.CancellationReason[cancelDetails.reason];
+                                if (cancelDetails.reason === SpeechSDK.CancellationReason.Error) {
+                                    statusDiv.innerHTML += ": " + cancelDetails.errorDetails;
+                                }
+                                break;
+                        }
+                        statusDiv.innerHTML += "\r\n";
+                        phraseDiv.innerHTML = result.text + "\r\n";
+                        sdkStopRecognizeOnceAsyncBtn.click();
+                    },
+                    function (err) {
+                        window.console.log(err);
+                        phraseDiv.innerHTML += "ERROR: " + err;
+                        sdkStopRecognizeOnceAsyncBtn.click();
+                    });
+                sdkStartRecognizeOnceAsyncBtn.disabled = true;
+                sdkStopRecognizeOnceAsyncBtn.disabled = false;
+            });
+
+            sdkStopRecognizeOnceAsyncBtn.addEventListener("click", function () {
+                sdkStartRecognizeOnceAsyncBtn.disabled = false;
+                sdkStopRecognizeOnceAsyncBtn.disabled = true;
+                reco.close();
+                reco = undefined;
+            });
+
+            
+            inputSource.addEventListener("change", function () {
+                audioFileValid = inputSource.value === "File";
+                if (inputSource.value === "File") {
+                    microphoneSource.disabled = true;
+                    filePicker.click();
+                    return;
+                } else {
+                    microphoneSource.disabled = false;
+                }
+            });
+            filePicker.addEventListener("change", function () {
+                audioFile = filePicker.files[0];
+            });
+
+            if (navigator && navigator.mediaDevices && navigator.mediaDevices.enumerateDevices) {
+                navigator.mediaDevices.enumerateDevices().then((devices) => {
+                    var opt = document.createElement('option');
+                    opt.appendChild(document.createTextNode(""));
+                    opt.value = undefined;
+                    microphoneSource.appendChild(opt);
+
+                    for (const device of devices) {
+                        if (device.kind === "audioinput") {
+                            microphoneSource.style = "";
+                            var opt = document.createElement('option');
+                            opt.appendChild(document.createTextNode(device.label));
+                            opt.value = device.deviceId;
+                            microphoneSource.appendChild(opt);
+                        }
+                    }
+                });
+            }
+
+            Initialize(function (speechSdk) {
+                SpeechSDK = speechSdk;
+                sdkStartContinousRecognitionBtn.disabled = false;
+                sdkStartRecognizeOnceAsyncBtn.disabled = false;
+                if (typeof RequestAuthorizationToken === "function") {
+                    RequestAuthorizationToken();
+                }
+            });
+        });
+    </script>
+</body>
+</html>
